@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Select Equipment — FactoryIQ</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <div class="logo">⚙️ FactoryIQ</div>
+    <div class="tagline">AI-Powered Equipment Diagnostics</div>
+  </header>
+
+  <main>
+    <div class="card">
+
+      <div class="breadcrumb">
+        <a href="index.html">Home</a>
+        <span>›</span>
+        <span>Select Equipment</span>
+      </div>
+
+      <h1>Select Equipment</h1>
+      <p class="subtitle">Choose the machine you're having issues with. We'll pull its maintenance history and known failure patterns.</p>
+
+      <div class="equipment-grid">
+        <div class="equipment-card" data-id="conveyor" onclick="selectEquipment(this)">
+          <div class="icon">🔄</div>
+          <div class="name">Conveyor Belt</div>
+          <div class="meta">Line 3 — Unit C-14</div>
+        </div>
+        <div class="equipment-card" data-id="hydraulic" onclick="selectEquipment(this)">
+          <div class="icon">🔧</div>
+          <div class="name">Hydraulic Press</div>
+          <div class="meta">Bay 2 — Unit HP-07</div>
+        </div>
+        <div class="equipment-card" data-id="cnc" onclick="selectEquipment(this)">
+          <div class="icon">🖥️</div>
+          <div class="name">CNC Mill</div>
+          <div class="meta">Machining — Unit M-22</div>
+        </div>
+        <div class="equipment-card" data-id="compressor" onclick="selectEquipment(this)">
+          <div class="icon">💨</div>
+          <div class="name">Air Compressor</div>
+          <div class="meta">Utility Room — AC-03</div>
+        </div>
+        <div class="equipment-card" data-id="robot" onclick="selectEquipment(this)">
+          <div class="icon">🤖</div>
+          <div class="name">Welding Robot</div>
+          <div class="meta">Assembly — Unit WR-11</div>
+        </div>
+        <div class="equipment-card" data-id="pump" onclick="selectEquipment(this)">
+          <div class="icon">⚙️</div>
+          <div class="name">Coolant Pump</div>
+          <div class="meta">Line 1 — Unit CP-05</div>
+        </div>
+      </div>
+
+      <button class="btn" id="next-btn" disabled onclick="goNext()">Continue →</button>
+
+    </div>
+  </main>
+
+  <footer>FactoryIQ Demo — Powered by Azure AI Foundry</footer>
+
+  <script>
+    let selected = null;
+
+    function selectEquipment(el) {
+      document.querySelectorAll('.equipment-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      selected = el.dataset.id;
+      const name = el.querySelector('.name').textContent;
+      const meta = el.querySelector('.meta').textContent;
+      sessionStorage.setItem('equipment_id', selected);
+      sessionStorage.setItem('equipment_name', name);
+      sessionStorage.setItem('equipment_meta', meta);
+      document.getElementById('next-btn').disabled = false;
+    }
+
+    function goNext() {
+      if (selected) window.location.href = 'page3.html';
+    }
+  </script>
+
+</body>
+</html>

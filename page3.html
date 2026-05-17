@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Describe Symptoms — FactoryIQ</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <div class="logo">⚙️ FactoryIQ</div>
+    <div class="tagline">AI-Powered Equipment Diagnostics</div>
+  </header>
+
+  <main>
+    <div class="card">
+
+      <div class="breadcrumb">
+        <a href="index.html">Home</a>
+        <span>›</span>
+        <a href="page2.html">Select Equipment</a>
+        <span>›</span>
+        <span>Describe Symptoms</span>
+      </div>
+
+      <h1>Describe the Symptoms</h1>
+      <p class="subtitle" id="equipment-label">Select all symptoms that apply. The more you select, the more accurate the diagnosis.</p>
+
+      <div class="symptom-list" id="symptom-list">
+        <div class="symptom-header">
+          <span>Symptom</span>
+          <span>Risk level</span>
+        </div>
+        <div class="symptom-item" onclick="toggleSymptom(event, this)">
+          <input type="checkbox" />
+          <label>Unusual noise or vibration during operation</label>
+          <span class="severity high">High</span>
+        </div>
+        <div class="symptom-item" onclick="toggleSymptom(event, this)">
+          <input type="checkbox" />
+          <label>Overheating or high temperature warning</label>
+          <span class="severity high">High</span>
+        </div>
+        <div class="symptom-item" onclick="toggleSymptom(event, this)">
+          <input type="checkbox" />
+          <label>Reduced speed or output performance</label>
+          <span class="severity medium">Medium</span>
+        </div>
+        <div class="symptom-item" onclick="toggleSymptom(event, this)">
+          <input type="checkbox" />
+          <label>Intermittent shutdowns or fault codes</label>
+          <span class="severity high">High</span>
+        </div>
+        <div class="symptom-item" onclick="toggleSymptom(event, this)">
+          <input type="checkbox" />
+          <label>Fluid leak or pressure drop</label>
+          <span class="severity medium">Medium</span>
+        </div>
+        <div class="symptom-item" onclick="toggleSymptom(event, this)">
+          <input type="checkbox" />
+          <label>Visible wear, damage, or misalignment</label>
+          <span class="severity medium">Medium</span>
+        </div>
+        <div class="symptom-item" onclick="toggleSymptom(event, this)">
+          <input type="checkbox" />
+          <label>Electrical issue or control panel error</label>
+          <span class="severity high">High</span>
+        </div>
+        <div class="symptom-item" onclick="toggleSymptom(event, this)">
+          <input type="checkbox" />
+          <label>Increased cycle time or timing irregularity</label>
+          <span class="severity low">Low</span>
+        </div>
+      </div>
+
+      <button class="btn" id="next-btn" disabled onclick="goNext()">Start Diagnostic Session →</button>
+
+    </div>
+  </main>
+
+  <footer>FactoryIQ Demo — Powered by Azure AI Foundry</footer>
+
+  <script>
+    const name = sessionStorage.getItem('equipment_name') || 'Selected Equipment';
+    const meta = sessionStorage.getItem('equipment_meta') || '';
+    document.getElementById('equipment-label').textContent =
+      `Diagnosing: ${name} (${meta}) — select all symptoms that apply.`;
+
+    function toggleSymptom(event, el) {
+      if(event.target.tagName === 'INPUT') {
+        el.classList.toggle('selected', event.target.checked);
+      } else {
+        const checkbox = el.querySelector('input[type="checkbox"]');
+        checkbox.checked = !checkbox.checked;
+        el.classList.toggle('selected', checkbox.checked);
+      }
+      updateButton();
+    }
+
+    function updateButton() {
+      const checked = document.querySelectorAll('.symptom-item input:checked');
+      document.getElementById('next-btn').disabled = checked.length === 0;
+    }
+
+    function goNext() {
+      const checked = document.querySelectorAll('.symptom-item input:checked');
+      const symptoms = Array.from(checked).map(c =>
+        c.closest('.symptom-item').querySelector('label').textContent.trim()
+      );
+      sessionStorage.setItem('symptoms', JSON.stringify(symptoms));
+      window.location.href = 'agent.html';
+    }
+  </script>
+
+</body>
+</html>

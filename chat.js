@@ -1,0 +1,62 @@
+import 'dotenv/config';
+import Fastify from 'fastify';
+
+const fastify = Fastify({ logger: true });
+
+fastify.addHook('onRequest', (req, reply, done) => {
+  reply.header('Access-Control-Allow-Origin', '*');
+  reply.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  reply.header('Access-Control-Allow-Headers', 'Content-Type');
+  done();
+});
+
+fastify.options('/api/chat', async (req, reply) => {
+  reply.code(204).send();
+});
+
+fastify.post('/api/chat', async (req, reply) => {
+  const { system, messages } = req.body;
+
+  const endpoint = process.env.AZURE_FOUNDRY_ENDPOINT;
+  const deployment = process.env.AZURE_MODEL_DEPLOYMENT;
+  const apiKey = process.env.AZURE_API_KEY;
+
+  if (!endpoint || !deployment || !apiKey) {
+    return reply.code(500).send({ error: 'Azure credentials not configured in .env' });
+  }
+
+  const url = `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=2024-12-01-preview`;
+
+  const azureRes = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'api-key': apiKey
+    },
+    body: JSON.stringify({
+      messages: [
+        { role: 'system', content: system },
+        ...messages
+      ],
+      max_tokens: 800,
+      temperature: 0.7
+    })
+  });
+
+  if (!azureRes.ok) {
+    const err = await azureRes.text();
+    return reply.code(502).send({ error: err });
+  }
+
+  const data = await azureRes.json();
+  const replyText = data.choices[0].message.content;
+
+  return { reply: replyText };
+});
+
+try {
+  await fastify.listen({ port: 3001, host: 'localhost' });
+} catch (err) {
+  fastify.log.error(err);
+  process.exit(1);
+}

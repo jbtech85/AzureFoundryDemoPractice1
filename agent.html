@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diagnostic Agent — FactoryIQ</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <div class="logo">⚙️ FactoryIQ</div>
+    <div class="tagline">AI-Powered Equipment Diagnostics</div>
+  </header>
+
+  <main>
+    <div class="card">
+
+      <div class="breadcrumb">
+        <a href="index.html">Home</a>
+        <span>›</span>
+        <a href="page2.html">Select Equipment</a>
+        <span>›</span>
+        <a href="page3.html">Symptoms</a>
+        <span>›</span>
+        <span>Diagnostic Agent</span>
+      </div>
+
+      <h1>Diagnostic Agent</h1>
+
+      <div class="context-bar" id="context-bar">
+        <div>Equipment: <span id="ctx-equipment">—</span></div>
+        <div>Symptoms reported: <span id="ctx-symptoms">—</span></div>
+      </div>
+
+      <div class="chat-container">
+        <div class="chat-messages" id="chat-messages">
+          <div class="message agent">
+            <div class="sender">FactoryIQ Agent</div>
+            <div id="intro-text">Loading your diagnostic session...</div>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" id="user-input" placeholder="Ask a follow-up question..." />
+          <button onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <button class="btn btn-outline" onclick="quickAsk('What parts should I inspect first?')">What to inspect first?</button>
+        <button class="btn btn-outline" onclick="quickAsk('What tools will I need?')">Tools needed?</button>
+        <button class="btn btn-outline" onclick="quickAsk('How urgent is this issue?')">How urgent?</button>
+        <button class="btn btn-outline" onclick="quickAsk('Should I shut down the equipment now?')">Shut down now?</button>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>FactoryIQ Demo — Powered by Azure AI Foundry</footer>
+
+  <script>
+    const equipmentName = sessionStorage.getItem('equipment_name') || 'Unknown Equipment';
+    const equipmentMeta = sessionStorage.getItem('equipment_meta') || '';
+    const symptoms = JSON.parse(sessionStorage.getItem('symptoms') || '[]');
+
+    document.getElementById('ctx-equipment').textContent = `${equipmentName} (${equipmentMeta})`;
+    document.getElementById('ctx-symptoms').textContent = symptoms.length;
+
+    const conversationHistory = [];
+
+    const systemPrompt = `You are FactoryIQ, an expert industrial equipment diagnostic assistant. 
+      You are helping a maintenance technician diagnose an issue with their ${equipmentName} (${equipmentMeta}).
+      The technician has reported the following symptoms: ${symptoms.join(', ')}.
+      Provide clear, practical diagnostic guidance. Be concise and actionable. 
+      Use numbered steps when giving instructions. Ask clarifying questions when needed.
+      Focus on safety first — always flag if the equipment should be shut down immediately.`;
+
+    async function initSession() {
+      const intro = symptoms.length > 0
+        ? `I've reviewed the reported symptoms for your **${equipmentName}**: ${symptoms.join('; ')}. Let me help you diagnose this. Based on these symptoms, here are my initial observations and recommended next steps:`
+        : `I'm ready to help diagnose your **${equipmentName}**. Can you describe what issue you're experiencing?`;
+
+      if (symptoms.length > 0) {
+        const response = await callAgent(
+          `I need to diagnose my ${equipmentName}. The symptoms are: ${symptoms.join(', ')}. Please give me an initial assessment and first steps.`
+        );
+        document.getElementById('intro-text').innerHTML = response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>');
+      } else {
+        document.getElementById('intro-text').textContent = intro;
+      }
+    }
+
+    async function callAgent(userMessage) {
+      conversationHistory.push({ role: 'user', content: userMessage });
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system: systemPrompt,
+            messages: conversationHistory
+          })
+        });
+
+        if (!res.ok) throw new Error('API error');
+        const data = await res.json();
+        const reply = data.reply;
+        conversationHistory.push({ role: 'assistant', content: reply });
+        return reply;
+
+      } catch (err) {
+        return 'I was unable to reach the diagnostic service. Please check your connection and try again.';
+      }
+    }
+
+    function appendMessage(role, text) {
+      const messages = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = `message ${role}`;
+      if (role === 'agent') {
+        div.innerHTML = `<div class="sender">FactoryIQ Agent</div><div>${text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>')}</div>`;
+      } else {
+        div.innerHTML = `<div class="sender">You</div><div>${text}</div>`;
+      }
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('user-input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      appendMessage('user', text);
+
+      const thinking = document.createElement('div');
+      thinking.className = 'message agent';
+      thinking.innerHTML = '<div class="sender">FactoryIQ Agent</div><div style="color:#888">Analyzing...</div>';
+      document.getElementById('chat-messages').appendChild(thinking);
+
+      const reply = await callAgent(text);
+      thinking.remove();
+      appendMessage('agent', reply);
+    }
+
+    function quickAsk(question) {
+      document.getElementById('user-input').value = question;
+      sendMessage();
+    }
+
+    document.getElementById('user-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    initSession();
+  </script>
+
+</body>
+</html>
