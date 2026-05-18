@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
   <header>
     <div class="logo">⚙️ FactoryIQ</div>
     <div class="tagline">AI-Powered Equipment Diagnostics</div>
@@ -15,7 +14,6 @@
 
   <main>
     <div class="card">
-
       <div class="breadcrumb">
         <a href="index.html">Home</a>
         <span>›</span>
@@ -76,17 +74,21 @@
       Focus on safety first — always flag if the equipment should be shut down immediately.`;
 
     async function initSession() {
-      const intro = symptoms.length > 0
-        ? `I've reviewed the reported symptoms for your **${equipmentName}**: ${symptoms.join('; ')}. Let me help you diagnose this. Based on these symptoms, here are my initial observations and recommended next steps:`
-        : `I'm ready to help diagnose your **${equipmentName}**. Can you describe what issue you're experiencing?`;
-
-      if (symptoms.length > 0) {
-        const response = await callAgent(
-          `I need to diagnose my ${equipmentName}. The symptoms are: ${symptoms.join(', ')}. Please give me an initial assessment and first steps.`
-        );
-        document.getElementById('intro-text').innerHTML = response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>');
-      } else {
-        document.getElementById('intro-text').textContent = intro;
+      try {
+        const res = await fetch('http://localhost:3001/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system: systemPrompt + '\n\nOpen the diagnostic session with a brief initial assessment based on the equipment and symptoms provided. Do not wait for the user to say anything.',
+            messages: [{ role: 'user', content: 'begin' }]
+          })
+        });
+        const data = await res.json();
+        document.getElementById('intro-text').innerHTML = data.reply
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n/g, '<br/>');
+      } catch {
+        document.getElementById('intro-text').innerHTML = `I'm ready to help diagnose your <strong>${equipmentName}</strong>. Can you describe what issue you're experiencing?`;
       }
     }
 
@@ -94,7 +96,7 @@
       conversationHistory.push({ role: 'user', content: userMessage });
 
       try {
-        const res = await fetch('/api/chat', {
+        const res = await fetch('http://localhost:3001/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

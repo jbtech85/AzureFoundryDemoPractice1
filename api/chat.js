@@ -1,7 +1,21 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
+import OpenAI from 'openai';
 
 const fastify = Fastify({ logger: true });
+const endpoint = process.env.AZURE_FOUNDRY_ENDPOINT;
+const deployment = process.env.AZURE_MODEL_DEPLOYMENT;
+const apiKey = process.env.AZURE_API_KEY;
+
+if (!endpoint || !deployment || !apiKey) {
+  fastify.log.error('Missing Azure credentials in .env');
+  process.exit(1);
+}
+
+const openai = new OpenAI({
+  baseURL: endpoint,
+  apiKey: apiKey
+});
 
 fastify.addHook('onRequest', (req, reply, done) => {
   reply.header('Access-Control-Allow-Origin', '*');
@@ -17,41 +31,24 @@ fastify.options('/api/chat', async (req, reply) => {
 fastify.post('/api/chat', async (req, reply) => {
   const { system, messages } = req.body;
 
-  const endpoint = process.env.AZURE_FOUNDRY_ENDPOINT;
-  const deployment = process.env.AZURE_MODEL_DEPLOYMENT;
-  const apiKey = process.env.AZURE_API_KEY;
-
-  if (!endpoint || !deployment || !apiKey) {
-    return reply.code(500).send({ error: 'Azure credentials not configured in .env' });
-  }
-
-  const url = `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=2024-12-01-preview`;
-
-  const azureRes = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'api-key': apiKey
-    },
-    body: JSON.stringify({
+  try {
+    const completion = await openai.chat.completions.create({
+      model: deployment,
       messages: [
         { role: 'system', content: system },
         ...messages
       ],
       max_tokens: 800,
-      temperature: 0.7
-    })
-  });
+      temperature: 0.7,
+      store: true
+    });
 
-  if (!azureRes.ok) {
-    const err = await azureRes.text();
-    return reply.code(502).send({ error: err });
+    const replyText = completion.choices[0].message.content;
+    return { reply: replyText };
+  } catch (err) {
+    fastify.log.error('Azure error: ' + err.message);
+    return reply.code(502).send({ error: err.message });
   }
-
-  const data = await azureRes.json();
-  const replyText = data.choices[0].message.content;
-
-  return { reply: replyText };
 });
 
 try {
